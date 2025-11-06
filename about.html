@@ -66,6 +66,30 @@
       </div>
     </div>
 
+    <div id="advantages" class="section">
+      <h2><i class="fas fa-star"></i> 最大优势</h2>
+      <ol class="list">
+        <li>方便快捷，无需下载，随时可用</li>
+        <li>可以一键复制，方便 OJ 做题提交</li>
+        <li>关闭标签页后代码不会丢失</li>
+        <li>可以一键自动缩进，解决缩进烦恼</li>
+        <li>界面美观，堪称完美，绝对细节</li>
+        <li>安全考量，无需担心代码泄漏</li>
+      </ol>
+    </div>
+
+    <div id="more-advantages" class="section">
+      <h2><i class="fas fa-gem"></i> 更多优势</h2>
+      <ul class="list">
+        <li><b>纯前端 · 零安装</b>：无需登录与插件，打开即用；PWA 支持可安装到桌面，图标为自适应 maskable。</li>
+        <li><b>离线友好</b>：首次加载后，页面、图标与基础脚本会被缓存；断网仍可编辑、保存与分享链接（运行会提示回退）。</li>
+        <li><b>极速交互</b>：Monaco 编辑器配合本地持久化，撤销/重做、复制、自动缩进响应迅速。</li>
+        <li><b>易用细节</b>：文件名与脏标记、主题记忆、移动端 I/O 面板切换、动画和阴影统一，使用过程顺滑。</li>
+        <li><b>可靠最小集</b>：默认不上传任何代码，只有点击“运行”时才调用远端；失败会回退到本地模拟，保障体验。</li>
+        <li><b>可分享与可复现</b>：支持将代码压缩进链接（URL hash），一键复制给同学/同事，对方打开即还原。</li>
+      </ul>
+    </div>
+
     <div id="help" class="section">
       <h2><i class="fas fa-circle-question"></i> 使用帮助</h2>
       <ol class="list">
@@ -119,7 +143,7 @@
       localStorage.setItem('about_theme', light ? 'light' : 'dark');
       apply();
     });
-    // 动态生成 favicon 与 PWA 图标，使用与首页一致的“代码”图形
+    // 动态生成 favicon 与 PWA 图标，使用与首页一致的“代码”图形（含缓存与 maskable）
     (function(){
       function drawIcon(size){
         const c = document.createElement('canvas');
@@ -145,16 +169,33 @@
         if(!link){ link=document.createElement('link'); link.rel='icon'; document.head.appendChild(link); }
         link.type='image/png'; link.href=url;
       }
-      function updateManifest(icon192, icon512){
+      function updateManifest(icons){
         let m = document.querySelector('link[rel="manifest"]');
         if(!m){ m=document.createElement('link'); m.rel='manifest'; document.head.appendChild(m); }
-        const manifest = { name:'在线 C 编译器', short_name:'C编译器', start_url:'./index.html', display:'standalone', background_color:'#0b0c0d', theme_color:'#0b0c0d', lang:'zh-CN', icons:[{src:icon192,sizes:'192x192',type:'image/png'},{src:icon512,sizes:'512x512',type:'image/png'}] };
+        const manifest = { name:'在线 C 编译器', short_name:'C编译器', start_url:'./index.html', display:'standalone', background_color:'#0b0c0d', theme_color:'#0b0c0d', lang:'zh-CN', icons:icons };
         const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
         m.href = URL.createObjectURL(blob);
       }
+      // 缓存
+      const cacheKey = 'dyn_icons_about_v1';
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try{
+          const data = JSON.parse(cached);
+          if (data && data.favicon && data.icons) { setFavicon(data.favicon); updateManifest(data.icons); return; }
+        }catch(e){}
+      }
       try{
-        const c192 = drawIcon(192), c512 = drawIcon(512);
-        c192.toBlob(b192=>{ const u192 = URL.createObjectURL(b192); setFavicon(u192); c512.toBlob(b512=>{ const u512 = URL.createObjectURL(b512); updateManifest(u192,u512); }); });
+        const sizes = [128,192,256,512];
+        const canvases = sizes.map(s=>drawIcon(s));
+        Promise.all(canvases.map((c,i)=>new Promise(res=>c.toBlob(b=>res({size:sizes[i],blob:b}), 'image/png')))).then(list=>{
+          const urls = list.map(it=>({size:it.size,url:URL.createObjectURL(it.blob)}));
+          const fav = urls.find(u=>u.size===192)||urls[0];
+          setFavicon(fav.url);
+          const icons = urls.map(u=>({src:u.url,sizes:u.size+'x'+u.size,type:'image/png',purpose:(u.size>=256?'any maskable':'any')}));
+          updateManifest(icons);
+          try{localStorage.setItem(cacheKey, JSON.stringify({favicon:fav.url, icons}));}catch(e){}
+        });
       }catch(e){}
     })();
   </script>

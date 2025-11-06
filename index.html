@@ -1,10 +1,10 @@
-<!--Version:1.2.6-->
+<!--Version:1.3.1-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>C 语言在线编译器 | HCY ZJU</title>
+    <title>C Compiler | C. He - ZJU</title>
     <!-- 字体图标和 Monaco 加载器 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/loader.js"></script>
@@ -57,9 +57,11 @@
     header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);transition:background-color .45s ease}
         header .title{display:flex;align-items:center;gap:10px;font-weight:600}
         header .title i{color:var(--accent);font-size:18px}
-    header .meta{color:var(--muted);font-size:13px}
+    header .meta{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:10px}
     header .meta a{color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
     header .meta a:hover{color:var(--accent);text-decoration:underline}
+    header .meta .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);font-size:12px}
+    body.light-theme header .meta .badge{background:rgba(0,0,0,0.06);border-color:rgba(0,0,0,0.08)}
 
     /* 主区：编辑器 + 侧栏 */
     .main{flex:1;display:flex;min-height:0;position:relative}
@@ -130,6 +132,7 @@
         <div class="frame">
         <header>
             <div class="title"><i class="fas fa-code"></i><div>Online C Compiler</div></div>
+            <div class="meta"><span class="badge" id="netBadge" title="网络状态">在线</span></div>
         </header>
 
         <div class="main">
@@ -147,12 +150,26 @@
 
             <aside class="sidebar" id="sidebar">
                 <div class="sb-head"><div><i class="fas fa-terminal"></i> 运行结果</div><button id="closeSb" class="btn ghost">折叠</button></div>
-                <div class="sb-section">
+                <div class="sb-section" id="ioSection">
                     <label>输入 (stdin)</label>
                     <textarea id="stdin" rows="3" placeholder="请先输入再点击运行..."></textarea>
                     <div style="height:12px"></div>
                     <label>输出 (stdout)</label>
                     <div class="output" id="stdout">程序输出将显示在这里...</div>
+                    <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                        <button class="btn ghost" id="enableTestsBtn" title="启用测试用例"><i class="fas fa-vial"></i> 测试用例</button>
+                    </div>
+                </div>
+                <div class="sb-section" id="testsSection" style="display:none">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                        <div><i class="fas fa-vial"></i> 测试用例</div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn ghost" id="addCaseBtn" title="新增测试用例"><i class="fas fa-plus"></i></button>
+                            <button class="btn ghost" id="runAllBtn" title="批量运行全部用例"><i class="fas fa-list-check"></i> 批量运行</button>
+                        </div>
+                    </div>
+                    <div id="casesList" style="display:flex;flex-direction:column;gap:8px"></div>
+                    <div id="casesSummary" class="output" style="margin-top:8px;display:none"></div>
                 </div>
             </aside>
         </div>
@@ -162,11 +179,12 @@
             <button class="btn ghost" id="openFileBtn"><i class="fas fa-folder-open"></i> 打开</button>
             <button class="btn ghost" id="formatBtn"><i id="formatLoadingIcon" class="fas fa-indent"></i> <span id="formatBtnText">自动缩进</span></button>
             <button class="btn ghost" id="copyBtn" title="复制"><i class="fas fa-copy"></i> 复制</button>
+            <button class="btn ghost" id="shareBtn" title="分享当前代码为链接"><i class="fas fa-link"></i> 分享</button>
             <button class="btn ghost" id="undoBtn" title="撤销" disabled><i class="fas fa-undo"></i></button>
             <button class="btn ghost" id="redoBtn" title="重做" disabled><i class="fas fa-redo"></i></button>
             <button class="btn ghost" id="fsBtn"><i class="fas fa-expand"></i> 全屏</button>
             <a id="introLink" href="./about.html" target="_blank" style="margin-left:auto;color:var(--muted);font-size:12px;text-decoration:none"><i class="fas fa-circle-info"></i> 简介与帮助</a>
-            <a id="versionLink" href="javascript:void(0)" style="color:var(--muted);font-size:12px;text-decoration:none;padding-left:12px">By C. He from ZJU | v1.2.6</a>
+            <a id="versionLink" href="javascript:void(0)" style="color:var(--muted);font-size:12px;text-decoration:none;padding-left:12px">By C. He from ZJU | v1.3.1</a>
         </div>
         </div>
     </div>
@@ -346,6 +364,11 @@ int main() {
             if (!window.editor) return;
             const code = window.editor.getValue();
             const stdin = (stdinEl.value || '').trim();
+            if (!navigator.onLine) {
+                try { showOfflineModal && showOfflineModal(); } catch(e){}
+                stdoutEl.textContent = '离线：当前不执行模拟，请连接网络再运行。';
+                return;
+            }
             stdoutEl.textContent = '运行中（Wandbox 优先）...';
             try {
                 const res = await tryWandboxCompile(code, stdin);
@@ -366,24 +389,17 @@ int main() {
         function simulateRun(code, input) {
             stdoutEl.textContent = '本地模拟运行...';
             setTimeout(() => {
-                if (/scanf\s*\(/.test(code) && (!input || input.trim() === '')) {
-                    stdoutEl.textContent = '错误：程序需要输入但未提供 stdin。';
-                    return;
-                }
-
-                if (!input || input.trim() === '') {
-                    stdoutEl.textContent = '提示：请在左侧输入两个整数，例如：10 20';
-                    return;
-                }
-
-                const parts = input.split(/\s+/).map(s => parseInt(s, 10));
-                if (parts.length >= 2 && parts.every(n => Number.isFinite(n))) {
-                    const [a, b] = parts;
-                    stdoutEl.textContent = `两数之和为：${a + b}`;
-                } else {
-                    stdoutEl.textContent = '错误：输入格式不正确，请输入两个整数（例如：10 20）';
-                }
+                stdoutEl.textContent = simulateRunOutput(code, input);
             }, 300);
+        }
+        function simulateRunOutput(code, input){
+            if (/scanf\s*\(/.test(code) && (!input || input.trim() === '')) return '错误：程序需要输入但未提供 stdin。';
+            if (!input || input.trim() === '') return '提示：请在左侧输入两个整数，例如：10 20';
+            const parts = input.split(/\s+/).map(s => parseInt(s, 10));
+            if (parts.length >= 2 && parts.every(n => Number.isFinite(n))) {
+                const [a, b] = parts; return `两数之和为：${a + b}`;
+            }
+            return '错误：输入格式不正确，请输入两个整数（例如：10 20）';
         }
 
         // 切换主题（轻/暗），默认暗黑。我们通过 body 的 .light-theme 类切换 CSS 变量
@@ -613,6 +629,51 @@ int main() {
             }
         });
     })();
+
+    // —— 分享链接功能 ——
+    const shareBtn = document.getElementById('shareBtn');
+    function encodeBase64(str){
+        try{
+            const enc = new TextEncoder();
+            const bytes = enc.encode(str);
+            let bin = '';
+            for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        }catch(e){ return btoa(unescape(encodeURIComponent(str))); }
+    }
+    function decodeBase64(b64){
+        try{
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+            return new TextDecoder().decode(bytes);
+        }catch(e){ return decodeURIComponent(escape(atob(b64))); }
+    }
+    function applyHashIfAny(){
+        const h = location.hash || '';
+        if (!h.startsWith('#code=')) return;
+        try{
+            const b64 = h.slice(6);
+            const code = decodeBase64(b64);
+            if (window.editor && code) {
+                window.editor.setValue(code);
+                currentFilename = 'shared.c';
+                fileTitle.textContent = currentFilename;
+                setDirty(false);
+            }
+        }catch(e){ console.warn('解析分享链接失败', e); }
+    }
+    shareBtn && shareBtn.addEventListener('click', ()=>{
+        try{
+            const code = window.editor ? window.editor.getValue() : '';
+            const b64 = encodeBase64(code);
+            const url = location.origin + location.pathname + '#code=' + b64;
+            navigator.clipboard.writeText(url).then(()=>{
+                shareBtn.innerHTML = '<i class="fas fa-check"></i> 已复制链接';
+                setTimeout(()=>{shareBtn.innerHTML = '<i class="fas fa-link"></i> 分享';},1400);
+            }).catch(()=>{ prompt('复制失败，请手动复制：', url); });
+        }catch(e){ alert('生成分享链接失败：' + (e&&e.message)); }
+    });
 
         // 侧栏折叠/展开逻辑：使用 class 'collapsed'，便于动画与恢复
         const sidebar = document.getElementById('sidebar');
@@ -845,11 +906,179 @@ int main() {
                     window['clangFormat']('int main() {return 0;}', 'c').catch(()=>{});
                 }
             } catch(e) {}
+            // 分享链接还原
+            try { applyHashIfAny && applyHashIfAny(); } catch(e){}
+            // 注册 Service Worker
+            try{ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); } }catch(e){}
+            // 网络状态徽章
+            try{
+                const netBadge = document.getElementById('netBadge');
+                function updateNet(){
+                    const on = navigator.onLine;
+                    if(netBadge){
+                        netBadge.textContent = on ? '在线' : '离线模式';
+                        netBadge.style.background = on ? 'rgba(34,197,94,.15)' : 'rgba(249,115,22,.15)';
+                        netBadge.style.borderColor = on ? 'rgba(34,197,94,.25)' : 'rgba(249,115,22,.25)';
+                        netBadge.style.color = on ? '#86efac' : '#fdba74';
+                    }
+                    try{ const runBtn = document.getElementById('runBtn'); if(runBtn){ runBtn.disabled = false; runBtn.title = on? '运行 (Ctrl/Cmd+Enter)' : '离线：请连接网络后再运行'; } }catch(e){}
+                }
+                updateNet();
+                window.addEventListener('online', updateNet);
+                window.addEventListener('offline', updateNet);
+            }catch(e){}
         });
 
         // 当窗口尺寸变化时，重新布局编辑器以适配容器大小
         window.addEventListener('resize', () => { try { window.editor && window.editor.layout(); } catch (e) {} });
+        // —— 测试用例管理 ——
+        const casesKey = 'test_cases_v1';
+        let cases = [];
+        function loadCases(){ try{ cases = JSON.parse(localStorage.getItem(casesKey)) || []; }catch(e){ cases=[]; } }
+        function saveCases(){ try{ localStorage.setItem(casesKey, JSON.stringify(cases)); }catch(e){} }
+        function normalize(s){ return (s||'').replace(/\r\n/g,'\n').trim(); }
+        async function runForTest(code, input){
+            if (!navigator.onLine){ return { mode:'offline', output: '' }; }
+            try { const r = await tryWandboxCompile(code, input); const out=((r.stdout||'')+((r.stderr&&r.stderr.trim())?'\n[stderr]\n'+r.stderr:'' )).trim(); return { mode:'wandbox', output: out }; }
+            catch(e){ return { mode:'simulate', output: simulateRunOutput(code, input) }; }
+        }
+        function renderCases(){
+            const list = document.getElementById('casesList'); if(!list) return;
+            list.innerHTML='';
+            if(!cases.length){ const empty=document.createElement('div'); empty.textContent='暂无用例，点击 + 新建。'; empty.style.opacity='.7'; list.appendChild(empty); return; }
+            cases.forEach((c, idx)=>{
+                const wrap=document.createElement('details'); wrap.style.background='var(--glass)'; wrap.style.border='1px solid rgba(255,255,255,0.06)'; wrap.style.borderRadius='8px';
+                const sum=document.createElement('summary'); sum.textContent=c.name||('用例'+(idx+1)); sum.style.cursor='pointer'; wrap.appendChild(sum);
+                const name=document.createElement('input'); name.type='text'; name.placeholder='用例名称'; name.value=c.name||''; name.style.margin='8px 0';
+                const stdin=document.createElement('textarea'); stdin.rows=2; stdin.placeholder='输入 (stdin)'; stdin.value=c.input||''; stdin.style.marginBottom='6px';
+                const expected=document.createElement('textarea'); expected.rows=2; expected.placeholder='期望输出 (可留空)'; expected.value=c.expected||''; expected.style.marginBottom='8px';
+                const actions=document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
+                const del=document.createElement('button'); del.className='btn ghost'; del.innerHTML='<i class="fas fa-trash"></i> 删除';
+                const run=document.createElement('button'); run.className='btn ghost'; run.innerHTML='<i class="fas fa-play"></i> 运行';
+                actions.appendChild(run); actions.appendChild(del);
+                wrap.appendChild(name); wrap.appendChild(stdin); wrap.appendChild(expected); wrap.appendChild(actions);
+                list.appendChild(wrap);
+                function commit(){ c.name=name.value; c.input=stdin.value; c.expected=expected.value; saveCases(); }
+                name.addEventListener('input', commit); stdin.addEventListener('input', commit); expected.addEventListener('input', commit);
+                del.addEventListener('click', ()=>{ cases.splice(idx,1); saveCases(); renderCases(); if(cases.length<=1){ try{ exitTestMode && exitTestMode(); }catch(e){} } });
+                run.addEventListener('click', async ()=>{
+                    if(!navigator.onLine){ try{ showOfflineModal && showOfflineModal(); }catch(e){} return; }
+                    const code = window.editor? window.editor.getValue():'';
+                    const res = await runForTest(code, stdin.value);
+                    const exp = expected.value || '';
+                    const ok = normalize(res.output) === normalize(exp);
+                    alert((c.name||('用例'+(idx+1))) + (ok?' 通过':' 失败') + (exp? '\n期望: '+exp+'\n实际: '+res.output : '\n输出: '+res.output));
+                });
+            });
+        }
+        const addCaseBtn = document.getElementById('addCaseBtn');
+        const runAllBtn = document.getElementById('runAllBtn');
+        const testsSection = document.getElementById('testsSection');
+        const enableTestsBtn = document.getElementById('enableTestsBtn');
+        const ioSection = document.getElementById('ioSection');
+        let testMode = false;
+        function enterTestMode(){
+            if(testMode) return; testMode = true;
+            try{ testsSection.style.display='block'; }catch(e){}
+            try{ enableTestsBtn.style.display='none'; }catch(e){}
+            if(!cases.length){ cases.push({name:'用例1', input: stdinEl.value || '', expected:''}); saveCases(); }
+            renderCases();
+        }
+        function exitTestMode(){
+            testMode = false;
+            try{ testsSection.style.display='none'; }catch(e){}
+            try{ enableTestsBtn.style.display='inline-flex'; }catch(e){}
+            if(cases.length===1){ try{ stdinEl.value = cases[0].input || ''; }catch(e){} }
+            cases = []; saveCases(); renderCases();
+        }
+        enableTestsBtn && enableTestsBtn.addEventListener('click', ()=>{ enterTestMode(); });
+        addCaseBtn && addCaseBtn.addEventListener('click', ()=>{ if(!testMode) enterTestMode(); cases.push({name:'',input:'',expected:''}); saveCases(); renderCases(); });
+        runAllBtn && runAllBtn.addEventListener('click', async ()=>{
+            if(!navigator.onLine){ try{ showOfflineModal && showOfflineModal(); }catch(e){} return; }
+            if(!cases.length){ alert('请先添加用例'); return; }
+            const code = window.editor? window.editor.getValue():'';
+            const summaryEl = document.getElementById('casesSummary'); summaryEl.style.display='block'; summaryEl.textContent='批量运行中...';
+            let pass=0, fail=0; const lines=[];
+            for(let i=0;i<cases.length;i++){
+                const c = cases[i];
+                const r = await runForTest(code, c.input||'');
+                const got = normalize(r.output);
+                const exp = normalize(c.expected);
+                const ok = (exp? got===exp : got.length>0);
+                if(ok){ pass++; lines.push(`✔ ${(c.name||'用例'+(i+1))} (${r.mode})`); }
+                else { fail++; lines.push(`✘ ${(c.name||'用例'+(i+1))} (${r.mode})`); lines.push(`  期望: ${c.expected}`); lines.push(`  实际: ${r.output}`); }
+            }
+            summaryEl.textContent = `结果：通过 ${pass}/${cases.length}${fail?`，失败 ${fail}`:''}\n\n` + lines.join('\n');
+        });
+        loadCases(); if(cases.length){ enterTestMode(); } renderCases();
+
+        // —— 快捷键 ——
+        document.addEventListener('keydown', (e)=>{
+            const ctrl = e.ctrlKey || e.metaKey;
+            if(!ctrl) return;
+            if(e.key.toLowerCase()==='s'){ e.preventDefault(); saveAsFile(); }
+            if(e.key==='Enter'){ e.preventDefault(); runCode(); }
+            if(e.key.toLowerCase()==='i'){ e.preventDefault(); document.getElementById('formatBtn')?.click(); }
+            if(e.key==='/'){ e.preventDefault(); try{ window.editor && window.editor.trigger('kb','editor.action.commentLine'); }catch(err){} }
+            if(e.shiftKey && e.key.toLowerCase()==='p'){ e.preventDefault(); openCmdPalette(); }
+        });
+
+        // —— 命令面板 ——
+        const commands=[
+            {id:'run',label:'运行 (Ctrl/Cmd+Enter)',action:runCode},
+            {id:'format',label:'自动缩进 (Ctrl/Cmd+I)',action:()=>document.getElementById('formatBtn')?.click()},
+            {id:'save',label:'另存为 (Ctrl/Cmd+S)',action:saveAsFile},
+            {id:'copy',label:'复制全部代码',action:()=>document.getElementById('copyBtn')?.click()},
+            {id:'share',label:'生成并复制分享链接',action:()=>document.getElementById('shareBtn')?.click()},
+            {id:'theme',label:'切换主题',action:()=>document.getElementById('themeBtn')?.click()},
+            {id:'open',label:'打开本地文件',action:()=>document.getElementById('openFileBtn')?.click()},
+            {id:'addcase',label:'启用/新增测试用例',action:()=>{ try{ enterTestMode(); document.getElementById('addCaseBtn')?.click(); }catch(e){} }},
+            {id:'runall',label:'批量运行测试用例',action:()=>document.getElementById('runAllBtn')?.click()}
+        ];
+        function openCmdPalette(){ const modal=document.getElementById('cmdPalette'); if(!modal) return; modal.style.display='flex'; requestAnimationFrame(()=>modal.classList.add('open')); const input=document.getElementById('cmdInput'); input.value=''; input.focus(); filterCmd(''); }
+        function closeCmdPalette(){ const modal=document.getElementById('cmdPalette'); if(!modal) return; modal.classList.remove('open'); setTimeout(()=>modal.style.display='none',150); }
+        function filterCmd(q){ const list=document.getElementById('cmdList'); if(!list) return; list.innerHTML=''; const s=(q||'').toLowerCase(); commands.filter(c=>c.label.toLowerCase().includes(s)).forEach(c=>{ const li=document.createElement('div'); li.className='cmd-item'; li.textContent=c.label; li.tabIndex=0; li.addEventListener('click',()=>{ closeCmdPalette(); setTimeout(()=>c.action(),50); }); list.appendChild(li); }); if(!list.children.length){ const li=document.createElement('div'); li.className='cmd-item'; li.style.opacity='.7'; li.textContent='无匹配命令'; list.appendChild(li); } }
+    window._openCmd = openCmdPalette;
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ const m=document.getElementById('cmdPalette'); if(m&&m.classList.contains('open')){ const modal=m; modal.classList.remove('open'); setTimeout(()=>modal.style.display='none',150); } } });
     </script>
+    <script>
+        /* 离线提示弹窗 */
+        function showOfflineModal(){
+            if(document.getElementById('offlineModal')){ const m=document.getElementById('offlineModal'); m.style.display='flex'; requestAnimationFrame(()=>m.classList.add('open')); return; }
+            const wrap=document.createElement('div'); wrap.id='offlineModal'; wrap.style.position='fixed'; wrap.style.inset='0'; wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.justifyContent='center'; wrap.style.background='rgba(0,0,0,.55)'; wrap.style.zIndex='5000';
+            wrap.innerHTML = '<div style="width:min(440px,92vw);background:var(--panel);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;box-shadow:0 20px 55px -8px rgba(0,0,0,.6);transform:translateY(12px) scale(.96);opacity:0;transition:.32s var(--anim-enter)"><h3 style="margin:0 0 12px;display:flex;align-items:center;gap:8px;color:#fff;font-size:16px"><i class="fas fa-wifi"></i> 离线不可运行</h3><p style="margin:0 0 12px;line-height:1.65;font-size:13px;color:var(--muted)">当前处于离线状态，暂不进行本地模拟运行，以避免结果不一致。请恢复网络后再点击“运行”。测试用例批量/单个运行也需要网络。</p><div style="display:flex;gap:10px;justify-content:flex-end"><button id="offlineClose" class="btn primary" style="background:var(--accent);color:#071022;padding:8px 14px;border-radius:10px;font-weight:600">知道了</button></div></div>';
+            document.body.appendChild(wrap);
+            requestAnimationFrame(()=>{ const inner=wrap.firstElementChild; inner.style.opacity='1'; inner.style.transform='translateY(0) scale(1)'; wrap.classList.add('open'); });
+            wrap.addEventListener('click', (e)=>{ if(e.target===wrap) close(); });
+            function close(){ wrap.classList.remove('open'); const inner=wrap.firstElementChild; inner.style.opacity='0'; inner.style.transform='translateY(12px) scale(.96)'; setTimeout(()=>{ wrap.style.display='none'; },240); }
+            document.getElementById('offlineClose').addEventListener('click', close);
+            document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc);} });
+        }
+    </script>
+        <!-- 命令面板结构与样式 -->
+        <style>
+        #cmdPalette{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.45);z-index:4000;font-size:14px}
+        #cmdPalette.open #cmdPaletteInner{transform:translateY(0) scale(1);opacity:1}
+        #cmdPaletteInner{margin-top:12vh;width:min(640px,92vw);background:var(--panel);border:1px solid rgba(255,255,255,0.08);border-radius:14px;box-shadow:0 18px 50px -10px rgba(0,0,0,.55);padding:16px;display:flex;flex-direction:column;gap:10px;transform:translateY(12px) scale(.96);opacity:0;transition:.32s var(--anim-enter)}
+        #cmdInput{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:var(--glass);color:#fff;font-size:14px}
+        #cmdList{max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px}
+        .cmd-item{padding:10px 12px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;background:var(--glass);color:var(--muted)}
+        .cmd-item:hover{border-color:var(--accent);color:#fff}
+        body.light-theme #cmdPaletteInner{border-color:rgba(0,0,0,0.08)}
+        body.light-theme #cmdInput{border-color:rgba(0,0,0,0.08);color:#0b1220}
+        body.light-theme .cmd-item{border-color:rgba(0,0,0,0.06)}
+        </style>
+        <div id="cmdPalette" aria-hidden="true" role="dialog">
+            <div id="cmdPaletteInner">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                    <div style="font-weight:600;color:#fff"><i class="fas fa-terminal"></i> 命令面板</div>
+                    <button class="btn ghost" onclick="(function(){const m=document.getElementById('cmdPalette');m.classList.remove('open');setTimeout(()=>m.style.display='none',150);})();"><i class="fas fa-xmark"></i> 关闭</button>
+                </div>
+                <input id="cmdInput" placeholder="输入关键字过滤，如 run / format" oninput="filterCmd(this.value)" />
+                <div id="cmdList"></div>
+                <div style="font-size:12px;opacity:.6;display:flex;justify-content:space-between"><span>Ctrl/Cmd+Shift+P 打开</span><span>Esc 关闭</span></div>
+            </div>
+        </div>
 
     <!-- 奶茶彩蛋弹窗样式与容器 -->
     <style>
@@ -992,7 +1221,7 @@ int main() {
                 link.type = 'image/png';
                 link.href = url;
             }
-            function updateManifest(icon192, icon512){
+            function updateManifest(icons){
                 let m = document.querySelector('link[rel="manifest"]');
                 if(!m){ m = document.createElement('link'); m.rel='manifest'; document.head.appendChild(m); }
                 const manifest = {
@@ -1003,24 +1232,35 @@ int main() {
                     background_color: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0c0d',
                     theme_color: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0c0d',
                     lang: 'zh-CN',
-                    icons: [
-                        { src: icon192, sizes: '192x192', type: 'image/png', purpose:'any' },
-                        { src: icon512, sizes: '512x512', type: 'image/png', purpose:'any' }
-                    ]
+                    icons
                 };
                 const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
                 m.href = URL.createObjectURL(blob);
             }
-            try{
-                const c192 = drawIcon(192);
-                const c512 = drawIcon(512);
-                c192.toBlob(b192 => {
-                    const u192 = URL.createObjectURL(b192);
-                    setFavicon(u192);
-                    c512.toBlob(b512 => {
-                        const u512 = URL.createObjectURL(b512);
-                        updateManifest(u192, u512);
-                    });
+            // 缓存避免重复生成
+            const cacheKey = 'dyn_icons_v1';
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    if (data && data.favicon && data.icons) {
+                        setFavicon(data.favicon);
+                        updateManifest(data.icons);
+                        return; // 使用缓存
+                    }
+                } catch(e){}
+            }
+            try {
+                const sizes = [128,192,256,512];
+                const canvases = sizes.map(s => drawIcon(s));
+                const iconBlobsPromises = canvases.map((c,i)=> new Promise(res=> c.toBlob(b=>res({size:sizes[i], blob:b}), 'image/png')));
+                Promise.all(iconBlobsPromises).then(list => {
+                    const urls = list.map(it => ({size:it.size, url:URL.createObjectURL(it.blob)}));
+                    const fav = urls.find(u=>u.size===192) || urls[0];
+                    setFavicon(fav.url);
+                    const icons = urls.map(u => ({ src: u.url, sizes: u.size+'x'+u.size, type:'image/png', purpose: (u.size>=256? 'any maskable':'any') }));
+                    updateManifest(icons);
+                    try { localStorage.setItem(cacheKey, JSON.stringify({ favicon: fav.url, icons })); } catch(e){}
                 });
             }catch(e){ /* 忽略失败，沿用静态 manifest */ }
         })();
