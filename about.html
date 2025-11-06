@@ -8,7 +8,7 @@
   <meta property="og:title" content="在线 C 编译器" />
   <meta property="og:description" content="零配置、开箱即用的在线 C 编译器：浏览器内编辑、自动缩进、运行输出、另存为下载、明暗主题切换。" />
   <meta property="og:type" content="website" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#0b0c0d" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='52' height='52' rx='12' fill='%232563eb'/%3E%3Cpath d='M30 18 L18 32 L30 46 M34 18 L46 32 L34 46' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" type="image/svg+xml" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,7 +16,7 @@
     :root{
       --bg:#0b0c0d; --panel:#0f1113; --text:#dbe9ff; --muted:#9aa4ad; --accent:#2563eb; --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.5);
     }
-    .light{ --bg:#f7fafc; --panel:#ffffff; --text:#0b1220; --muted:#475569; --accent:#2563eb; --shadow:0 8px 28px rgba(0,0,0,.08); }
+  .light{ --bg:#f3f6fb; --panel:#ffffff; --text:#0b1220; --muted:#4b5563; --accent:#2563eb; --shadow:0 8px 28px rgba(0,0,0,.08); }
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--muted);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial}
     a{color:var(--accent);text-decoration:none}
     .page{max-width:1040px;margin:0 auto;padding:24px}
@@ -43,7 +43,7 @@
   <div class="page">
     <div class="hero">
       <h1><i class="fas fa-code"></i> 在线 C 编译器</h1>
-      <p>零配置、开箱即用的在线 C 语言编译/运行环境：浏览器中即可编写与运行 C 代码，支持智能自动缩进、美观主题、复制与另存为下载；运行优先调用 Wandbox，失败时自动回退本地模拟，保障体验稳定。</p>
+  <p>零配置、开箱即用的在线 C 语言编译/运行环境：浏览器中即可编写与运行 C 代码，支持智能自动缩进、美观主题、复制与另存为下载；运行优先调用 Wandbox，若在线失败再回退本地模拟；离线状态将提示不可运行，避免误导。</p>
       <div class="cta">
         <a class="btn primary" href="./index.html"><i class="fas fa-play"></i> 立即体验</a>
         <a class="btn" href="./CHANGELOG.md" target="_blank"><i class="fas fa-book"></i> 查看更新日志</a>
@@ -82,7 +82,7 @@
       <h2><i class="fas fa-gem"></i> 更多优势</h2>
       <ul class="list">
         <li><b>纯前端 · 零安装</b>：无需登录与插件，打开即用；PWA 支持可安装到桌面，图标为自适应 maskable。</li>
-        <li><b>离线友好</b>：首次加载后，页面、图标与基础脚本会被缓存；断网仍可编辑、保存与分享链接（运行会提示回退）。</li>
+  <li><b>离线友好</b>：首次加载后，页面、图标与基础脚本会被缓存；断网仍可编辑、保存与分享链接（运行会提示当前不可执行）。</li>
         <li><b>极速交互</b>：Monaco 编辑器配合本地持久化，撤销/重做、复制、自动缩进响应迅速。</li>
         <li><b>易用细节</b>：文件名与脏标记、主题记忆、移动端 I/O 面板切换、动画和阴影统一，使用过程顺滑。</li>
         <li><b>可靠最小集</b>：默认不上传任何代码，只有点击“运行”时才调用远端；失败会回退到本地模拟，保障体验。</li>
@@ -95,11 +95,31 @@
       <ol class="list">
         <li>打开 <a href="./index.html">在线编译器</a>，在编辑区域编写 C 代码。</li>
         <li>左侧“输入 (stdin)”填入你的标准输入（可选）。</li>
-        <li>点击底部“运行”按钮，优先通过 Wandbox 编译/运行，若不可用自动回退到本地模拟。</li>
+        <li>点击底部“运行”按钮：在线优先通过 Wandbox 编译/运行；若在线失败自动回退本地模拟；离线则弹窗提示不可运行。</li>
         <li>需要排版可点击“自动缩进”；复制代码用“复制”，保存到本地用“另存为”。</li>
         <li>切换“主题”可在明亮/暗色间切换；撤销/重做按钮会在可用时自动启用。</li>
       </ol>
-      <p style="margin-top:8px">注意：若 Wandbox 暂不可用，输出区会提示已回退到“本地模拟”。</p>
+      <p style="margin-top:8px">注意：若 Wandbox 暂不可用，输出区会提示已回退到“本地模拟”；若离线，将弹窗说明不可执行。</p>
+    </div>
+
+    <div id="shortcuts" class="section">
+      <h2><i class="fas fa-keyboard"></i> 键盘快捷键</h2>
+      <ul class="list">
+        <li>运行：Ctrl/Cmd + Enter</li>
+        <li>自动缩进：Ctrl/Cmd + I</li>
+        <li>另存为：Ctrl/Cmd + S</li>
+        <li>切换行注释：Ctrl/Cmd + /</li>
+        <li>命令面板：Ctrl/Cmd + Shift + P（Esc 关闭）</li>
+      </ul>
+    </div>
+
+    <div id="share" class="section">
+      <h2><i class="fas fa-share-nodes"></i> 分享与协作</h2>
+      <ul class="list">
+        <li>支持一键分享：将代码压缩进链接（URL hash），复制给同学/同事，对方打开即可还原。</li>
+        <li>分享增强：可选择是否包含“输入 (stdin)”与“测试用例”，便于复现实验环境；仅包含代码时使用精简链接。</li>
+        <li>打开分享链接后，页面会自动还原代码；若包含输入/用例，也会同步到 I/O 或测试面板中。</li>
+      </ul>
     </div>
 
     <div class="section">
@@ -132,16 +152,28 @@
   <button id="themeToggle" class="theme-toggle"><i class="fas fa-moon"></i> 主题</button>
   <script>
     const btn = document.getElementById('themeToggle');
-    const apply = () => {
-      const light = localStorage.getItem('about_theme') === 'light';
+    function getTheme(){
+      // 与编译器保持一致：优先使用 editorTheme；兼容旧的 about_theme（一次性迁移）
+      try{
+        const t = localStorage.getItem('editorTheme');
+        if(t){ return t; }
+        const legacy = localStorage.getItem('about_theme');
+        if(legacy){ localStorage.setItem('editorTheme', legacy==='light'?'light':'dark'); return legacy; }
+      }catch(e){}
+      return 'dark';
+    }
+    function applyTheme(){
+      const light = getTheme() === 'light';
       document.documentElement.classList.toggle('light', light);
       btn.innerHTML = light ? '<i class="fas fa-moon"></i> 主题' : '<i class="fas fa-sun"></i> 主题';
-    };
-    apply();
-    btn.addEventListener('click', () => {
-      const light = !(localStorage.getItem('about_theme') === 'light');
-      localStorage.setItem('about_theme', light ? 'light' : 'dark');
-      apply();
+    }
+    applyTheme();
+    btn.addEventListener('click', ()=>{
+      try{
+        const next = (getTheme()==='light') ? 'dark' : 'light';
+        localStorage.setItem('editorTheme', next);
+        applyTheme();
+      }catch(e){}
     });
     // 动态生成 favicon 与 PWA 图标，使用与首页一致的“代码”图形（含缓存与 maskable）
     (function(){
