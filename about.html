@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>在线 C 编译器 · 使用指南与介绍</title>
+  <meta name="description" content="零配置、开箱即用的在线 C 编译器：浏览器内编辑、自动缩进、运行输出、另存为下载、明暗主题切换。" />
+  <meta property="og:title" content="在线 C 编译器" />
+  <meta property="og:description" content="零配置、开箱即用的在线 C 编译器：浏览器内编辑、自动缩进、运行输出、另存为下载、明暗主题切换。" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{
+      --bg:#0b0c0d; --panel:#0f1113; --text:#dbe9ff; --muted:#9aa4ad; --accent:#2563eb; --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.5);
+    }
+    .light{ --bg:#f7fafc; --panel:#ffffff; --text:#0b1220; --muted:#475569; --accent:#2563eb; --shadow:0 8px 28px rgba(0,0,0,.08); }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--muted);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial}
+    a{color:var(--accent);text-decoration:none}
+    .page{max-width:1040px;margin:0 auto;padding:24px}
+    .hero{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px;margin-top:18px}
+    .hero h1{margin:0 0 10px;color:var(--text);font-size:28px}
+    .hero p{margin:0;color:var(--muted);line-height:1.65}
+    .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    .btn{border:1px solid rgba(255,255,255,.06);background:transparent;color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+    .btn.primary{background:var(--accent);color:#fff;border:0}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:22px}
+    .card{background:var(--panel);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+    .card h3{margin:0 0 8px;color:var(--text);font-size:16px}
+    .card p{margin:0;color:var(--muted);line-height:1.7}
+    .section{margin-top:28px;background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:20px}
+    .section h2{margin:0 0 12px;color:var(--text);font-size:20px}
+    .list{margin:0;padding-left:18px;color:var(--muted);line-height:1.8}
+    .footer{display:flex;align-items:center;justify-content:space-between;margin:32px 0 14px;color:var(--muted)}
+    .footer .brand{color:var(--muted)}
+    .theme-toggle{position:fixed;right:16px;bottom:16px;border-radius:10px;background:var(--panel);border:1px solid rgba(0,0,0,.1);padding:10px 12px;color:var(--text);box-shadow:var(--shadow);cursor:pointer}
+    @media (max-width:960px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <h1><i class="fas fa-code"></i> 在线 C 编译器</h1>
+      <p>零配置、开箱即用的在线 C 语言编译/运行环境：浏览器中即可编写与运行 C 代码，支持智能自动缩进、美观主题、复制与另存为下载；运行优先调用 Wandbox，失败时自动回退本地模拟，保障体验稳定。</p>
+      <div class="cta">
+        <a class="btn primary" href="./index.html"><i class="fas fa-play"></i> 立即体验</a>
+        <a class="btn" href="./CHANGELOG.md" target="_blank"><i class="fas fa-book"></i> 查看更新日志</a>
+        <a class="btn" href="#help"><i class="fas fa-circle-question"></i> 使用帮助</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3><i class="fas fa-bolt"></i> 核心特性</h3>
+        <p>Monaco 编辑器、自动缩进（纯 JS）、撤销/重做、复制、另存为下载、明亮/暗色主题、侧栏输入输出与运行状态显示。</p>
+      </div>
+      <div class="card">
+        <h3><i class="fas fa-wand-magic-sparkles"></i> 智能缩进</h3>
+        <p>支持 if/for/while 单行体、do...while、switch/case、字符串/注释/预处理指令，避免常见误缩进。</p>
+      </div>
+      <div class="card">
+        <h3><i class="fas fa-shield-halved"></i> 数据与隐私</h3>
+        <p>编辑内容保存在浏览器本地（localStorage）。另存为将下载到你的设备；提交到 Wandbox 的代码仅用于编译运行。</p>
+      </div>
+    </div>
+
+    <div id="help" class="section">
+      <h2><i class="fas fa-circle-question"></i> 使用帮助</h2>
+      <ol class="list">
+        <li>打开 <a href="./index.html">在线编译器</a>，在编辑区域编写 C 代码。</li>
+        <li>左侧“输入 (stdin)”填入你的标准输入（可选）。</li>
+        <li>点击底部“运行”按钮，优先通过 Wandbox 编译/运行，若不可用自动回退到本地模拟。</li>
+        <li>需要排版可点击“自动缩进”；复制代码用“复制”，保存到本地用“另存为”。</li>
+        <li>切换“主题”可在明亮/暗色间切换；撤销/重做按钮会在可用时自动启用。</li>
+      </ol>
+      <p style="margin-top:8px">注意：若 Wandbox 暂不可用，输出区会提示已回退到“本地模拟”。</p>
+    </div>
+
+    <div class="section">
+      <h2><i class="fas fa-list-check"></i> 常见问题（FAQ）</h2>
+      <ul class="list">
+        <li><b>Q: 是否支持 C++？</b> A: 目前内置 C 语法高亮，打开 .cpp/.hpp 文件会自动切换至 C++ 模式；运行仍通过 C 的 Wandbox 编译器配置，可后续扩展。</li>
+        <li><b>Q: 我的代码会丢失吗？</b> A: 页面会将你的内容保存在浏览器的 localStorage；建议定期“另存为”进行备份。</li>
+        <li><b>Q: WASM 运行器可用吗？</b> A: 当前为预留能力，默认不启用；运行优先 Wandbox，不可用时回退模拟。</li>
+        <li><b>Q: 如何查看历史更新？</b> A: 点击页面右下角“By C. He from ZJU | 版本号”，或在此处打开 <a href="./CHANGELOG.md" target="_blank">CHANGELOG.md</a>。</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2><i class="fas fa-bullhorn"></i> 适用场景</h2>
+      <ul class="list">
+        <li>课堂/培训演示：免安装、跨平台。</li>
+        <li>题解/算法草稿：快速验证小段代码逻辑。</li>
+        <li>示例/文档附带代码：一键运行和复制。</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <div class="brand">By C. He from ZJU · Online C Compiler</div>
+      <div>
+        <a href="./index.html" class="btn"><i class="fas fa-arrow-left"></i> 返回编译器</a>
+      </div>
+    </div>
+  </div>
+
+  <button id="themeToggle" class="theme-toggle"><i class="fas fa-moon"></i> 主题</button>
+  <script>
+    const btn = document.getElementById('themeToggle');
+    const apply = () => {
+      const light = localStorage.getItem('about_theme') === 'light';
+      document.documentElement.classList.toggle('light', light);
+      btn.innerHTML = light ? '<i class="fas fa-moon"></i> 主题' : '<i class="fas fa-sun"></i> 主题';
+    };
+    apply();
+    btn.addEventListener('click', () => {
+      const light = !(localStorage.getItem('about_theme') === 'light');
+      localStorage.setItem('about_theme', light ? 'light' : 'dark');
+      apply();
+    });
+  </script>
+</body>
+</html>

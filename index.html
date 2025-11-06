@@ -1,4 +1,4 @@
-<!--Version:1.2.2-->
+<!--Version:1.2.4-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -24,6 +24,7 @@
             --glass: rgba(255,255,255,0.02);
             --radius: 10px;
             --shadow: 0 8px 30px rgba(0,0,0,0.6);
+            --anim-enter: cubic-bezier(.16,.84,.44,1);
         }
 
         /* 明亮主题覆盖变量（切换时将 body 添加 .light-theme） */
@@ -65,7 +66,7 @@
     #editor{flex:1;min-height:0;height:100%}
 
         /* 工具栏 */
-        .toolbar{display:flex;gap:8px;padding:10px 14px;align-items:center}
+        .toolbar{display:flex;gap:8px;padding:10px 14px;align-items:center;flex-wrap:wrap}
     .btn{border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--muted);transition:color .3s}
     .btn.primary{background:var(--accent);color:#071022}
     .btn.ghost{border:1px solid rgba(0,0,0,0.06)}
@@ -89,12 +90,31 @@
     /* 注意：编辑器保持始终填满宽度，侧栏是覆盖式的但上下有留白以避免遮挡头部与底部控件 */
 
         /* 小屏适配 */
-        @media (max-width:900px){
-            .main{flex-direction:column}
-            .sidebar{width:100%;height:34%}
-        /* 确保编辑器画布不挡住侧栏：编辑器区域的层级要低于侧栏 */
-        #editor{position:relative;z-index:10}
+        /* iPad 横/竖屏 & 手机适配 */
+        @media (max-width:1180px){
+            :root{--sidebar-width:320px}
         }
+        @media (max-width:1024px){ /* iPad 竖屏 */
+            :root{--sidebar-width:300px}
+            header{padding:10px 12px}
+            .editor-head{padding:8px 10px}
+            .toolbar{padding:8px 10px}
+            .btn{padding:6px 10px;font-size:12px}
+        }
+        @media (max-width:900px){ /* 大手机/小平板 */
+            .sidebar{position:static;width:100%;height:auto;top:auto;bottom:auto;border-top:1px solid rgba(255,255,255,0.06);order:2}
+            .main{flex-direction:column}
+            #sidebarToggle{display:none !important}
+        }
+        @media (max-width:640px){ /* 手机优化：工具栏换行，字号压缩 */
+            .btn{padding:6px 8px;font-size:11px}
+            .toolbar{gap:6px}
+            .editor-head h2{font-size:12px}
+            .output{font-size:12px}
+        }
+        /* 奶茶弹窗进入动画 */
+        #milkTeaModal{opacity:0;transform:translateY(12px) scale(.96);transition:opacity .38s var(--anim-enter),transform .38s var(--anim-enter)}
+        #milkTeaModal.show{opacity:1;transform:translateY(0) scale(1)}
     </style>
 </head>
 <body>
@@ -136,7 +156,8 @@
             <button class="btn ghost" id="undoBtn" title="撤销" disabled><i class="fas fa-undo"></i></button>
             <button class="btn ghost" id="redoBtn" title="重做" disabled><i class="fas fa-redo"></i></button>
             <button class="btn ghost" id="fsBtn"><i class="fas fa-expand"></i> 全屏</button>
-            <a id="versionLink" href="./CHANGELOG.md" target="_blank" style="margin-left:auto;color:var(--muted);font-size:12px;text-decoration:none">By C. He from ZJU | v1.2.2</a>
+            <a id="introLink" href="./about.html" target="_blank" style="margin-left:auto;color:var(--muted);font-size:12px;text-decoration:none"><i class="fas fa-circle-info"></i> 简介与帮助</a>
+            <a id="versionLink" href="javascript:void(0)" style="color:var(--muted);font-size:12px;text-decoration:none;padding-left:12px">By C. He from ZJU | v1.2.4</a>
         </div>
         </div>
     </div>
@@ -786,6 +807,95 @@ int main() {
         window.addEventListener('resize', () => { try { window.editor && window.editor.layout(); } catch (e) {} });
     </script>
 
-        <script src="/projects/compiler/changelog.js" defer></script>
+    <!-- 奶茶彩蛋弹窗样式与容器 -->
+    <style>
+        #milkTeaModal{position:fixed;right:16px;bottom:60px;background:var(--panel);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px 18px 14px;width:260px;box-shadow:0 12px 34px -6px rgba(0,0,0,.55);font-size:13px;line-height:1.55;color:var(--muted);z-index:3000;display:none}
+        #milkTeaModal h3{margin:0 0 8px;font-size:15px;color:#fff;display:flex;align-items:center;gap:6px}
+        #milkTeaModal img{width:100%;border-radius:10px;margin-top:6px;border:1px solid rgba(255,255,255,0.06)}
+        #milkTeaClose{position:absolute;top:8px;right:10px;background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:14px}
+        #milkTeaActions{margin-top:10px;display:flex;gap:8px}
+        #milkTeaActions button{flex:1;background:var(--accent);border:0;color:#071022;padding:6px 8px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px}
+        #milkTeaActions a{flex:1;text-align:center;background:transparent;border:1px solid rgba(255,255,255,0.12);color:var(--muted);padding:6px 8px;border-radius:8px;text-decoration:none;font-size:12px}
+        body.light-theme #milkTeaModal{border-color:rgba(0,0,0,0.08);box-shadow:0 10px 30px -4px rgba(0,0,0,.18)}
+        body.light-theme #milkTeaModal h3{color:#0b1220}
+        body.light-theme #milkTeaModal img{border-color:rgba(0,0,0,0.08)}
+    </style>
+    <div id="milkTeaModal" aria-hidden="true">
+        <button id="milkTeaClose" aria-label="关闭">✕</button>
+        <h3><i class="fas fa-mug-hot"></i> 请我喝奶茶～</h3>
+        <p>如果这个小工具对你有帮助，欢迎请作者喝一杯奶茶支持持续更新 😄</p>
+        <img src="./img/WeChat.jpeg" alt="微信收款码" />
+        <div id="milkTeaActions">
+            <button id="milkTeaOk">我请！</button>
+            <a href="./CHANGELOG.md" target="_blank">更新日志</a>
+        </div>
+    </div>
+    <!-- 手机首次访问提示（仅手机，展示一次） -->
+    <style>
+        #mobileTip{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:3500}
+        #mobileTip .sheet{background:var(--panel);border:1px solid rgba(255,255,255,0.08);border-radius:14px;width:min(420px,90vw);padding:18px;box-shadow:0 14px 40px rgba(0,0,0,.5);color:var(--muted);transform:scale(.96);opacity:0;transition:transform .22s var(--anim-enter),opacity .22s var(--anim-enter)}
+        #mobileTip.open .sheet{transform:scale(1);opacity:1}
+        #mobileTip h3{margin:0 0 8px;color:#fff;display:flex;align-items:center;gap:8px}
+        #mobileTip p{margin:0;line-height:1.7}
+        #mobileTip .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+        #mobileTip .actions button{background:var(--accent);border:0;color:#071022;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer}
+        body.light-theme #mobileTip .sheet{border-color:rgba(0,0,0,0.08)}
+        body.light-theme #mobileTip h3{color:#0b1220}
+    </style>
+    <div id="mobileTip" aria-hidden="true" role="dialog">
+        <div class="sheet">
+            <h3><i class="fas fa-mobile-screen-button"></i> 建议使用 PC 端</h3>
+            <p>为获得更佳编辑与运行体验，建议在电脑或 iPad 横屏使用。手机可浏览但交互受限。</p>
+            <div class="actions"><button id="mobileTipOk">我知道了</button></div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            const trigger = document.getElementById('versionLink');
+            const modal = document.getElementById('milkTeaModal');
+            const closeBtn = document.getElementById('milkTeaClose');
+            const okBtn = document.getElementById('milkTeaOk');
+            if(!trigger || !modal) return;
+            function open(){
+                modal.style.display='block';
+                requestAnimationFrame(()=>modal.classList.add('show'));
+                modal.setAttribute('aria-hidden','false');
+            }
+            function close(){
+                modal.classList.remove('show');
+                setTimeout(()=>{modal.style.display='none';modal.setAttribute('aria-hidden','true');},260);
+            }
+            trigger.addEventListener('click', ()=>{
+                if(modal.style.display==='block'){close();return;}
+                open();
+            });
+            closeBtn && closeBtn.addEventListener('click', close);
+            okBtn && okBtn.addEventListener('click', ()=>{
+                okBtn.textContent='么么哒 ❤';
+                setTimeout(close,1600);
+            });
+        })();
+
+        // 手机首次访问提示
+        (function(){
+            try{
+                const isPhone = (Math.min(window.innerWidth, window.innerHeight) < 600) || (/Android|iPhone/i.test(navigator.userAgent) && !/iPad|Tablet/i.test(navigator.userAgent));
+                if (!isPhone) return;
+                if (localStorage.getItem('mobile_warned') === '1') return;
+                const wrap = document.getElementById('mobileTip');
+                const ok = document.getElementById('mobileTipOk');
+                if (!wrap || !ok) return;
+                wrap.style.display = 'flex';
+                requestAnimationFrame(()=>wrap.classList.add('open'));
+                wrap.setAttribute('aria-hidden','false');
+                function close(){
+                    wrap.classList.remove('open');
+                    setTimeout(()=>{wrap.style.display='none';wrap.setAttribute('aria-hidden','true');},220);
+                    try{localStorage.setItem('mobile_warned','1');}catch(e){}
+                }
+                ok.addEventListener('click', close);
+            }catch(e){}
+        })();
+    </script>
 </body>
 </html>
