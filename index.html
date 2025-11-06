@@ -99,7 +99,7 @@
         <div class="frame">
         <header>
             <div class="title"><i class="fas fa-code"></i><div>Online C Compiler</div></div>
-            <div class="meta">By C. He from ZJU · <a href="/CHANGELOG.md" target="_blank" rel="noopener" id="versionLink"><span id="versionTag">Version 1.1.13</span></a></div>
+            <div class="meta">By C. He from ZJU · <a href="/CHANGELOG.md" target="_blank" rel="noopener" id="versionLink"><span id="versionTag">Version 1.1.14</span></a></div>
         </header>
 
         <div class="main">
@@ -116,6 +116,7 @@
                     <button class="btn ghost" id="openFileBtn"><i class="fas fa-folder-open"></i> 打开文件</button>
                     <button class="btn ghost" id="saveBtn"><i class="fas fa-save"></i> 保存</button>
                     <button class="btn ghost" id="resetBtn"><i class="fas fa-undo"></i> 重置</button>
+                    <button class="btn ghost" id="formatBtn" title="自动缩进"><i class="fas fa-indent"></i> 自动缩进</button>
                     <button class="btn ghost" id="fsBtn" title="全屏"><i class="fas fa-expand"></i></button>
                     <label style="display:inline-flex;align-items:center;gap:8px;color:var(--muted)">
                         <input type="checkbox" id="useWasm" style="width:16px;height:16px"> 优先使用 WASM
@@ -434,6 +435,17 @@ int main() {
     try { saveBtn && saveBtn.addEventListener('click', saveCode); } catch (e) {}
     try { resetBtn && resetBtn.addEventListener('click', resetCode); } catch (e) {}
     try { themeBtn && themeBtn.addEventListener('click', toggleTheme); } catch (e) {}
+    // 自动缩进按钮绑定
+    try {
+        const formatBtn = document.getElementById('formatBtn');
+        if (formatBtn) {
+            formatBtn.addEventListener('click', function() {
+                if (window.editor) {
+                    window.editor.getAction('editor.action.formatDocument').run();
+                }
+            });
+        }
+    } catch (e) {}
 
         // 侧栏折叠/展开逻辑：使用 class 'collapsed'，便于动画与恢复
         const sidebar = document.getElementById('sidebar');

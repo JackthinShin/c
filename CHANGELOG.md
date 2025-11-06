@@ -1,4 +1,9 @@
 # Changelog
+#
+## [1.1.14] - 2025-11-06
+### Added
+- 工具栏新增“自动缩进”按钮，集成 Monaco Editor 的一键格式化功能，支持 C 代码自动缩进和格式化。
+
 
 All notable changes to this project will be documented in this file.
 
