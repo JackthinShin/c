@@ -644,7 +644,8 @@ int main() {
                 metrics_title:'代码复杂度与度量', metrics_desc:'实时分析当前编辑器内容，帮助了解规模与潜在复杂度。复杂度为近似估算（启发式），非精确解析。', metrics_refresh:'刷新度量', metrics_copy:'复制报告', metrics_copied:'已复制', metrics_placeholder:'(点击“刷新度量”或编辑代码后查看)',
                 save_as:'另存为', theme:'主题', theme_light:'明亮', theme_dark:'暗色', stdin_placeholder:'请先输入再点击运行...', stdout_placeholder:'程序输出将显示在这里...', expected_placeholder:'期望输出 (可留空)',
                 close:'关闭', collapse:'折叠',
-                cmd_palette:'命令面板', cmd_close:'关闭', cmd_no_match:'无匹配命令', cmd_hint_open:'Ctrl/Cmd+Shift+P 打开', cmd_hint_close:'Esc 关闭', cmd_filter_placeholder:'输入关键字过滤，如 run / format'
+                cmd_palette:'命令面板', cmd_close:'关闭', cmd_input_placeholder:'输入关键字过滤，如 run / format', cmd_no_match:'无匹配命令', cmd_hint_open:'Ctrl/Cmd+Shift+P 打开', cmd_hint_close:'Esc 关闭',
+                metric_total:'总行数', metric_nonempty:'非空行', metric_comment:'注释行', metric_funcs:'函数数量(估算)', metric_complexity:'圈复杂度(近似)', metric_nesting:'最大大括号嵌套', metric_avg_func:'平均函数行数(估算)', metric_decisions:'决策点计数', metric_fail:'度量失败'
             },
             en: {
                 run:'Run', open:'Open', format:'Format', copy:'Copy', copied:'Copied', share:'Share', share_copy:'Copy Link', metrics:'Metrics', undo:'Undo', redo:'Redo', fullscreen:'Fullscreen',
@@ -656,7 +657,8 @@ int main() {
                 metrics_title:'Code Metrics', metrics_desc:'Analyze the current code for size and potential complexity. Heuristic only, not a precise parser.', metrics_refresh:'Refresh', metrics_copy:'Copy Report', metrics_copied:'Copied', metrics_placeholder:'(Click “Refresh” or edit code to update)',
                 save_as:'Save As', theme:'Theme', theme_light:'Light', theme_dark:'Dark', stdin_placeholder:'Enter stdin (optional), then click Run', stdout_placeholder:'Program output will appear here...', expected_placeholder:'Expected output (optional)',
                 close:'Close', collapse:'Collapse',
-                cmd_palette:'Command Palette', cmd_close:'Close', cmd_no_match:'No matching command', cmd_hint_open:'Ctrl/Cmd+Shift+P to open', cmd_hint_close:'Esc to close', cmd_filter_placeholder:'Type keywords to filter (e.g. run / format)'
+                cmd_palette:'Command Palette', cmd_close:'Close', cmd_input_placeholder:'Type keywords to filter, e.g. run / format', cmd_no_match:'No matching command', cmd_hint_open:'Ctrl/Cmd+Shift+P to open', cmd_hint_close:'Esc to close',
+                metric_total:'Total Lines', metric_nonempty:'Non-empty Lines', metric_comment:'Comment Lines', metric_funcs:'Function Count (approx)', metric_complexity:'Cyclomatic (approx)', metric_nesting:'Max Brace Nesting', metric_avg_func:'Avg Lines per Func (approx)', metric_decisions:'Decision Points', metric_fail:'Metrics failed'
             }
         };
         function getLang(){ try{ return localStorage.getItem('ui_lang') || 'zh'; }catch(e){ return 'zh'; } }
@@ -705,17 +707,14 @@ int main() {
                     const refresh=document.getElementById('metricsRefresh'); if(refresh) refresh.innerHTML='<i class="fas fa-rotate"></i> '+t('metrics_refresh');
                     const copy=document.getElementById('metricsCopy'); if(copy) copy.innerHTML='<i class="fas fa-copy"></i> '+t('metrics_copy');
                     const rep=document.getElementById('metricsReport'); if(rep && (!rep.textContent || rep.textContent.includes('点击') || rep.textContent.includes('Click'))) rep.textContent = t('metrics_placeholder');
-                }catch(e){}
-                // 命令面板本地化（若已渲染）
-                try{
-                    const cmdTitle=document.querySelector('#cmdPaletteInner > div > div[style] i.fas.fa-terminal')?.parentElement; // robust selection fallback
-                }catch(e){}
-                try{
-                    const cmdHeader=document.querySelector('#cmdPaletteInner > div:first-child > div');
-                    if(cmdHeader){ cmdHeader.innerHTML='<i class="fas fa-terminal"></i> '+t('cmd_palette'); }
-                    const cmdCloseBtn=document.querySelector('#cmdPaletteInner > div:first-child button.btn.ghost'); if(cmdCloseBtn) cmdCloseBtn.innerHTML='<i class="fas fa-xmark"></i> '+t('cmd_close');
-                    const cmdInput=document.getElementById('cmdInput'); if(cmdInput) cmdInput.placeholder=t('cmd_filter_placeholder');
-                    const cmdFooter=document.querySelector('#cmdPaletteInner > div:last-child'); if(cmdFooter){ cmdFooter.innerHTML='<span>'+t('cmd_hint_open')+'</span><span>'+t('cmd_hint_close')+'</span>'; }
+                    // 命令面板文本
+                    try{
+                        const cmdTitle=document.getElementById('cmdTitle'); if(cmdTitle) cmdTitle.innerHTML='<i class="fas fa-terminal"></i> '+t('cmd_palette');
+                        const cmdClose=document.getElementById('cmdClose'); if(cmdClose) cmdClose.innerHTML='<i class="fas fa-xmark"></i> '+t('cmd_close');
+                        const cmdInput=document.getElementById('cmdInput'); if(cmdInput) cmdInput.placeholder=t('cmd_input_placeholder');
+                        const cmdHintOpen=document.getElementById('cmdHintOpen'); if(cmdHintOpen) cmdHintOpen.textContent=t('cmd_hint_open');
+                        const cmdHintClose=document.getElementById('cmdHintClose'); if(cmdHintClose) cmdHintClose.textContent=t('cmd_hint_close');
+                    }catch(e){}
                 }catch(e){}
             }catch(e){}
         }
@@ -1128,7 +1127,12 @@ int main() {
                     const res = await runForTest(code, stdin.value);
                     const exp = expected.value || '';
                     const ok = normalize(res.output) === normalize(exp);
-                    alert((c.name||('用例'+(idx+1))) + (ok?' 通过':' 失败') + (exp? '\n期望: '+exp+'\n实际: '+res.output : '\n输出: '+res.output));
+                    const baseName = c.name || (t('case_name') + (idx+1));
+                    const passText = ok ? (getLang()==='zh'?' 通过':' PASS') : (getLang()==='zh'?' 失败':' FAIL');
+                    const expectLabel = getLang()==='zh'?'期望':'Expected';
+                    const actualLabel = getLang()==='zh'?'实际':'Actual';
+                    const outputLabel = getLang()==='zh'?'输出':'Output';
+                    alert(baseName + passText + (exp? `\n${expectLabel}: ${exp}\n${actualLabel}: ${res.output}` : `\n${outputLabel}: ${res.output}`));
                 });
             });
         }
@@ -1142,7 +1146,7 @@ int main() {
             if(testMode) return; testMode = true;
             try{ testsSection.style.display='block'; }catch(e){}
             try{ enableTestsBtn.style.display='none'; }catch(e){}
-            if(!cases.length){ cases.push({name:'用例1', input: stdinEl.value || '', expected:''}); saveCases(); }
+            if(!cases.length){ cases.push({name:(t('case_name')+'1'), input: stdinEl.value || '', expected:''}); saveCases(); }
             renderCases();
         }
         function exitTestMode(){
@@ -1156,9 +1160,9 @@ int main() {
         addCaseBtn && addCaseBtn.addEventListener('click', ()=>{ if(!testMode) enterTestMode(); cases.push({name:'',input:'',expected:''}); saveCases(); renderCases(); });
         runAllBtn && runAllBtn.addEventListener('click', async ()=>{
             if(!navigator.onLine){ try{ showOfflineModal && showOfflineModal(); }catch(e){} return; }
-            if(!cases.length){ alert('请先添加用例'); return; }
+            if(!cases.length){ alert(getLang()==='zh'? '请先添加用例':'Please add test cases first'); return; }
             const code = window.editor? window.editor.getValue():'';
-            const summaryEl = document.getElementById('casesSummary'); summaryEl.style.display='block'; summaryEl.textContent='批量运行中...';
+            const summaryEl = document.getElementById('casesSummary'); summaryEl.style.display='block'; summaryEl.textContent= getLang()==='zh'? '批量运行中...':'Running all cases...';
             let pass=0, fail=0; const lines=[];
             for(let i=0;i<cases.length;i++){
                 const c = cases[i];
@@ -1166,10 +1170,15 @@ int main() {
                 const got = normalize(r.output);
                 const exp = normalize(c.expected);
                 const ok = (exp? got===exp : got.length>0);
-                if(ok){ pass++; lines.push(`✔ ${(c.name||'用例'+(i+1))} (${r.mode})`); }
-                else { fail++; lines.push(`✘ ${(c.name||'用例'+(i+1))} (${r.mode})`); lines.push(`  期望: ${c.expected}`); lines.push(`  实际: ${r.output}`); }
+                const labelName = c.name || (t('case_name') + (i+1));
+                if(ok){ pass++; lines.push(`✔ ${labelName} (${r.mode})`); }
+                else { fail++; lines.push(`✘ ${labelName} (${r.mode})`); lines.push(`  ${(getLang()==='zh'?'期望':'Expected')}: ${c.expected}`); lines.push(`  ${(getLang()==='zh'?'实际':'Actual')}: ${r.output}`); }
             }
-            summaryEl.textContent = `结果：通过 ${pass}/${cases.length}${fail?`，失败 ${fail}`:''}\n\n` + lines.join('\n');
+            if(getLang()==='zh'){
+                summaryEl.textContent = `结果：通过 ${pass}/${cases.length}${fail?`，失败 ${fail}`:''}\n\n` + lines.join('\n');
+            }else{
+                summaryEl.textContent = `Result: Passed ${pass}/${cases.length}${fail?`, Failed ${fail}`:''}\n\n` + lines.join('\n');
+            }
         });
         loadCases(); if(cases.length){ enterTestMode(); } renderCases();
 
@@ -1186,20 +1195,20 @@ int main() {
 
         // —— 命令面板 ——
         const commands=[
-            {id:'run',label:'运行 (Ctrl/Cmd+Enter)',action:runCode},
-            {id:'format',label:'自动缩进 (Ctrl/Cmd+I)',action:()=>document.getElementById('formatBtn')?.click()},
-            {id:'save',label:'另存为 (Ctrl/Cmd+S)',action:saveAsFile},
-            {id:'copy',label:'复制全部代码',action:()=>document.getElementById('copyBtn')?.click()},
-            {id:'share',label:'生成并复制分享链接',action:()=>document.getElementById('shareBtn')?.click()},
-            {id:'metrics',label:'打开代码度量',action:()=>document.getElementById('metricsBtn')?.click()},
-            {id:'theme',label:'切换主题',action:()=>document.getElementById('themeBtn')?.click()},
-            {id:'open',label:'打开本地文件',action:()=>document.getElementById('openFileBtn')?.click()},
-            {id:'addcase',label:'启用/新增测试用例',action:()=>{ try{ enterTestMode(); document.getElementById('addCaseBtn')?.click(); }catch(e){} }},
-            {id:'runall',label:'批量运行测试用例',action:()=>document.getElementById('runAllBtn')?.click()}
+            {id:'run',label:()=> t('run')+' (Ctrl/Cmd+Enter)',action:runCode},
+            {id:'format',label:()=> t('format')+' (Ctrl/Cmd+I)',action:()=>document.getElementById('formatBtn')?.click()},
+            {id:'save',label:()=> t('save_as')+' (Ctrl/Cmd+S)',action:saveAsFile},
+            {id:'copy',label:()=> t('copy'),action:()=>document.getElementById('copyBtn')?.click()},
+            {id:'share',label:()=> t('share_title'),action:()=>document.getElementById('shareBtn')?.click()},
+            {id:'metrics',label:()=> t('metrics_title'),action:()=>document.getElementById('metricsBtn')?.click()},
+            {id:'theme',label:()=> t('theme'),action:()=>document.getElementById('themeBtn')?.click()},
+            {id:'open',label:()=> t('open'),action:()=>document.getElementById('openFileBtn')?.click()},
+            {id:'addcase',label:()=> t('enable_tests')+' / +',action:()=>{ try{ enterTestMode(); document.getElementById('addCaseBtn')?.click(); }catch(e){} }},
+            {id:'runall',label:()=> t('run_all_title'),action:()=>document.getElementById('runAllBtn')?.click()}
         ];
         function openCmdPalette(){ const modal=document.getElementById('cmdPalette'); if(!modal) return; modal.style.display='flex'; requestAnimationFrame(()=>modal.classList.add('open')); const input=document.getElementById('cmdInput'); input.value=''; input.focus(); filterCmd(''); }
         function closeCmdPalette(){ const modal=document.getElementById('cmdPalette'); if(!modal) return; modal.classList.remove('open'); setTimeout(()=>modal.style.display='none',150); }
-    function filterCmd(q){ const list=document.getElementById('cmdList'); if(!list) return; list.innerHTML=''; const s=(q||'').toLowerCase(); commands.filter(c=>c.label.toLowerCase().includes(s)).forEach(c=>{ const li=document.createElement('div'); li.className='cmd-item'; li.textContent=c.label; li.tabIndex=0; li.addEventListener('click',()=>{ closeCmdPalette(); setTimeout(()=>c.action(),50); }); list.appendChild(li); }); if(!list.children.length){ const li=document.createElement('div'); li.className='cmd-item'; li.style.opacity='.7'; li.textContent=t('cmd_no_match'); list.appendChild(li); } }
+    function filterCmd(q){ const list=document.getElementById('cmdList'); if(!list) return; list.innerHTML=''; const s=(q||'').toLowerCase(); commands.filter(c=> (typeof c.label==='function'? c.label():c.label).toLowerCase().includes(s)).forEach(c=>{ const li=document.createElement('div'); li.className='cmd-item'; li.textContent=(typeof c.label==='function'? c.label():c.label); li.tabIndex=0; li.addEventListener('click',()=>{ closeCmdPalette(); setTimeout(()=>c.action(),50); }); list.appendChild(li); }); if(!list.children.length){ const li=document.createElement('div'); li.className='cmd-item'; li.style.opacity='.7'; li.textContent=t('cmd_no_match'); list.appendChild(li); } }
     window._openCmd = openCmdPalette;
     document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ const m=document.getElementById('cmdPalette'); if(m&&m.classList.contains('open')){ const modal=m; modal.classList.remove('open'); setTimeout(()=>modal.style.display='none',150); } } });
     </script>
@@ -1292,18 +1301,18 @@ int main() {
                     }
                     const avgFunc = funcLines.length? (funcLines.reduce((a,b)=>a+b,0)/funcLines.length).toFixed(2): '0';
                     const report = [
-                        `总行数: ${total}`,
-                        `非空行: ${nonEmpty}`,
-                        `注释行: ${commentLines}`,
-                        `函数数量(估算): ${funcCount}`,
-                        `圈复杂度(近似): ${complexity}`,
-                        `最大大括号嵌套: ${maxLevel}`,
-                        `平均函数行数(估算): ${avgFunc}`,
-                        `决策点计数: ${decisions}`
+                            `${t('metric_total')}: ${total}`,
+                            `${t('metric_nonempty')}: ${nonEmpty}`,
+                            `${t('metric_comment')}: ${commentLines}`,
+                            `${t('metric_funcs')}: ${funcCount}`,
+                            `${t('metric_complexity')}: ${complexity}`,
+                            `${t('metric_nesting')}: ${maxLevel}`,
+                            `${t('metric_avg_func')}: ${avgFunc}`,
+                            `${t('metric_decisions')}: ${decisions}`
                     ].join('\n');
                     const el = (arguments[0]||document.getElementById('metricsReport'));
                     if(el) el.textContent = report;
-                }catch(err){ reportEl.textContent = '度量失败: '+(err&&err.message); }
+                    }catch(err){ reportEl.textContent = t('metric_fail')+': '+(err&&err.message); }
             }
         })();
     </script>
@@ -1330,13 +1339,13 @@ int main() {
         </style>
         <div id="cmdPalette" aria-hidden="true" role="dialog">
             <div id="cmdPaletteInner">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-                    <div style="font-weight:600;color:#fff"><i class="fas fa-terminal"></i> 命令面板</div>
-                    <button class="btn ghost" onclick="(function(){const m=document.getElementById('cmdPalette');m.classList.remove('open');setTimeout(()=>m.style.display='none',150);})();"><i class="fas fa-xmark"></i> 关闭</button>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px" id="cmdHeader">
+                    <div style="font-weight:600;color:#fff" id="cmdTitle"><i class="fas fa-terminal"></i> 命令面板</div>
+                    <button class="btn ghost" id="cmdClose"><i class="fas fa-xmark"></i> 关闭</button>
                 </div>
                 <input id="cmdInput" placeholder="输入关键字过滤，如 run / format" oninput="filterCmd(this.value)" />
                 <div id="cmdList"></div>
-                <div style="font-size:12px;opacity:.6;display:flex;justify-content:space-between"><span>Ctrl/Cmd+Shift+P 打开</span><span>Esc 关闭</span></div>
+                <div style="font-size:12px;opacity:.6;display:flex;justify-content:space-between" id="cmdHints"><span id="cmdHintOpen">Ctrl/Cmd+Shift+P 打开</span><span id="cmdHintClose">Esc 关闭</span></div>
             </div>
         </div>
         <!-- 代码度量弹窗 -->
